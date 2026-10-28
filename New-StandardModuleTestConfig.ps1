@@ -43,6 +43,11 @@
 .PARAMETER Force
     Overwrite an existing StandardModuleTestConfig.psd1 without prompting.
 
+.PARAMETER ReportFormat
+    Default human-readable reports: Html, Markdown, Terminal, All, or None.
+    Combine concrete formats. All and None must each be used alone.
+    No human-readable reports are selected by default. XML remains enabled.
+
 .EXAMPLE
     .\New-StandardModuleTestConfig.ps1 -ModuleRoot 'C:\Code\MyModule'
 
@@ -93,11 +98,19 @@ param(
     [switch]$DisableTestCoverageCheck,
 
     [Parameter()]
+    [ValidateSet('Html', 'Markdown', 'Terminal', 'All', 'None')]
+    [string[]]$ReportFormat = @(),
+
+    [Parameter()]
     [switch]$Force
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+. (Join-Path $PSScriptRoot 'Private\Reporting.ps1')
+$null = Resolve-StandardReportFormat -Selection $ReportFormat
+$reportFormatLiteral = ($ReportFormat | ForEach-Object { "'$_'" }) -join ', '
 
 if (-not (Test-Path $ModuleRoot)) {
     $PSCmdlet.ThrowTerminatingError(
@@ -174,6 +187,9 @@ $content = @"
 # Explicit parameters passed to that script always override these values.
 
 @{
+    # Optional Html, Markdown, Terminal, All, or None. XML is always enabled.
+    ReportFormat = @($reportFormatLiteral)
+
     # -------------------------------------------------------------------------
     # Module.FunctionConventions.Tests.ps1
     # -------------------------------------------------------------------------

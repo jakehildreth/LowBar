@@ -122,6 +122,9 @@ BeforeDiscovery {
             @{
                 FunctionName        = $funcName
                 FileName            = $file.Name
+                SourcePath          = $file.FullName
+                SourceLine          = $funcDef.Extent.StartLineNumber
+                SourceFunction      = $funcName
                 ModuleName          = $script:moduleName
                 Verb                = $verb
                 IsApprovedVerb      = ($approvedVerbs -contains $verb)
@@ -147,43 +150,42 @@ Describe 'Function Conventions - <ModuleName>' -Tag 'Unit', 'FunctionConventions
     Context '<FunctionName> in <FileName>' -ForEach $script:functionCases {
         It 'should use an approved PowerShell verb' {
             $IsApprovedVerb | Should -BeTrue `
-                -Because "'$Verb' is not an approved PowerShell verb. Run Get-Verb to see all approved verbs."
+                -Because "'$Verb' is not an approved PowerShell verb. Recommendation: Choose an approved verb from Get-Verb, rename the function, and update its exports and callers."
         }
 
         It 'function name should follow PascalCase Verb-Noun format' {
             $IsPascalCase | Should -BeTrue `
-                -Because "'$FunctionName' must be Verb-Noun with both parts starting with an uppercase letter (e.g. Get-UserProfile, not get-UserProfile or Get-userProfile)"
+                -Because "'$FunctionName' must be Verb-Noun with both parts starting with an uppercase letter. Recommendation: Rename the function using PascalCase Verb-Noun format (e.g. Get-UserProfile) and update its filename, exports, and callers."
         }
 
         It 'should declare [CmdletBinding()]' {
             $HasCmdletBinding | Should -BeTrue `
-                -Because "'$FunctionName' must be an advanced function. Add [CmdletBinding()] before the param() block."
+                -Because "'$FunctionName' must be an advanced function. Recommendation: Add [CmdletBinding()] before the param() block."
         }
 
         It 'should declare [OutputType()]' -Skip:$SkipOutputTypeCheck {
             $HasOutputType | Should -BeTrue `
-                -Because "'$FunctionName' must document its return type. Add [OutputType([TypeName])] before param(). To opt out: add '$FunctionName' to the ExcludeOutputTypeCheck parameter."
+                -Because "'$FunctionName' must document its return type. Recommendation: Add [OutputType([TypeName])] before param() to describe the function output. To opt out: add '$FunctionName' to the ExcludeOutputTypeCheck parameter."
         }
 
         It 'should not use [bool] parameters -- use [switch] instead' {
             $BoolParams | Should -BeNullOrEmpty `
-                -Because "parameter(s) '$($BoolParams -join "', '")' in '$FunctionName' should use [switch] not [bool]"
+                -Because "parameter(s) '$($BoolParams -join "', '")' in '$FunctionName' should use [switch] not [bool]. Recommendation: Replace [bool] flag parameters with [switch] and update callers to use switch syntax."
         }
 
         It 'all parameters should have explicit type declarations' {
             $UntypedParams | Should -BeNullOrEmpty `
-                -Because "parameter(s) '$($UntypedParams -join "', '")' in '$FunctionName' have no type constraint. Add [TypeName] before each parameter variable."
+                -Because "parameter(s) '$($UntypedParams -join "', '")' in '$FunctionName' have no type constraint. Recommendation: Add an appropriate [TypeName] before each untyped parameter variable."
         }
 
         It 'should declare [CmdletBinding(SupportsShouldProcess = $true)] for destructive verb' -Skip:(-not $IsDestructive) {
             $HasShouldProcess | Should -BeTrue `
-                -Because "'$FunctionName' uses the destructive verb '$Verb'. Add SupportsShouldProcess = `$true to the [CmdletBinding()] attribute."
+                -Because "'$FunctionName' uses the destructive verb '$Verb'. Recommendation: Add SupportsShouldProcess = `$true to [CmdletBinding()] and guard state-changing operations with `$PSCmdlet.ShouldProcess()."
         }
 
         It 'should have a process {} block when accepting pipeline input' -Skip:(-not $HasPipelineParam) {
             $HasProcessBlock | Should -BeTrue `
-                -Because "'$FunctionName' accepts pipeline input but has no process {} block. Without it, only the last piped object is processed."
+                -Because "'$FunctionName' accepts pipeline input but has no process {} block. Without it, only the last piped object is processed. Recommendation: Move per-input work into a process {} block."
         }
     }
 }
-

@@ -143,6 +143,7 @@ BeforeDiscovery {
         @{
             FileName        = $file.Name
             FilePath        = $file.FullName
+            SourcePath      = $file.FullName
             BadEncoding     = $badEncoding
             TrailingWsLines = $trailingWsLines
             TabLines        = $tabLines
@@ -160,32 +161,32 @@ Describe 'File Formatting - <ModuleName>' -Tag 'Unit', 'Formatting' {
     Context '<FileName>' -ForEach $script:fileCases {
         It 'should not use UTF-16 or UTF-32 encoding' {
             $BadEncoding | Should -BeFalse `
-                -Because "'$FileName' must be UTF-8 or UTF-8 with BOM, not UTF-16 or UTF-32"
+                -Because "'$FileName' must be UTF-8 or UTF-8 with BOM, not UTF-16 or UTF-32. Recommendation: Save the file as UTF-8 or UTF-8 with BOM."
         }
 
         It 'should have no trailing whitespace' {
             $TrailingWsLines | Should -BeNullOrEmpty `
-                -Because "'$FileName' has trailing whitespace on line(s): $($TrailingWsLines -join ', ')"
+                -Because "'$FileName' has trailing whitespace on line(s): $($TrailingWsLines -join ', '). Recommendation: Remove spaces and tabs from the end of each affected line."
         }
 
         It 'should not use tab characters' {
             $TabLines | Should -BeNullOrEmpty `
-                -Because "'$FileName' uses tab characters on line(s): $($TabLines -join ', '). Use spaces for indentation."
+                -Because "'$FileName' uses tab characters on line(s): $($TabLines -join ', '). Recommendation: Replace tab characters with spaces for indentation."
         }
 
         It 'should end with a newline' {
             $HasEofNewline | Should -BeTrue `
-                -Because "'$FileName' does not end with a newline. Most editors add this automatically."
+                -Because "'$FileName' does not end with a newline. Recommendation: Add a newline at the end of the file."
         }
 
         It 'should not use backtick line continuations' {
             $BacktickLines | Should -BeNullOrEmpty `
-                -Because "'$FileName' uses backtick continuations on line(s): $($BacktickLines -join ', '). Use splatting (@params) or natural line breaks (e.g. after a pipe or opening brace) instead."
+                -Because "'$FileName' uses backtick continuations on line(s): $($BacktickLines -join ', '). Recommendation: Replace backtick continuations with splatting (@params) or natural line breaks (e.g. after a pipe or opening brace)."
         }
 
         It 'opening braces should be on the same line as the preceding statement (OTBS)' -Skip:$SkipOTBS {
             $OTBSViolations | Should -BeNullOrEmpty `
-                -Because "'$FileName' has OTBS violations: $($OTBSViolations -join '; '). To opt out: set SkipOTBSCheck = `$true or add the filename to ExcludeOTBSFiles."
+                -Because "'$FileName' has OTBS violations: $($OTBSViolations -join '; '). Recommendation: Move each opening brace onto the same line as the preceding statement. To opt out: set SkipOTBSCheck = `$true or add the filename to ExcludeOTBSFiles."
         }
     }
 }
