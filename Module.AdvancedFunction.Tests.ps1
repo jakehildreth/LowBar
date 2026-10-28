@@ -132,6 +132,9 @@ BeforeDiscovery {
             @{
                 FunctionName        = $funcName
                 FileName            = $file.Name
+                SourcePath          = $file.FullName
+                SourceLine          = $funcDef.Extent.StartLineNumber
+                SourceFunction      = $funcName
                 ModuleName          = $script:moduleName
                 ErrorHandlingIssues = $errorHandlingIssues
                 SkipErrorHandling   = ($SkipErrorHandlingCheck -or
@@ -150,12 +153,12 @@ Describe 'Advanced Function Quality - <ModuleName>' -Tag 'Unit', 'AdvancedFuncti
     Context '<FunctionName> in <FileName>' -ForEach $script:functionCases {
         It 'should prefer $PSCmdlet error methods over Write-Error and throw' -Skip:$SkipErrorHandling {
             $ErrorHandlingIssues | Should -BeNullOrEmpty `
-                -Because "'$FunctionName' is an advanced function. Use `$PSCmdlet.WriteError() instead of Write-Error and `$PSCmdlet.ThrowTerminatingError() instead of throw for correct error stream behavior. Found: $($ErrorHandlingIssues -join '; '). To opt out: add '$FunctionName' to ExcludeErrorHandlingCheck."
+                -Because "'$FunctionName' is an advanced function. Found: $($ErrorHandlingIssues -join '; '). Recommendation: Replace Write-Error with `$PSCmdlet.WriteError() and throw with `$PSCmdlet.ThrowTerminatingError(). To opt out: add '$FunctionName' to ExcludeErrorHandlingCheck."
         }
 
         It 'should not assign to preference variables inside function scope' -Skip:$SkipPrefVarCheck {
             $PrefVarAssignments | Should -BeNullOrEmpty `
-                -Because "'$FunctionName' modifies global preference variables, which overrides the caller's settings. Found: $($PrefVarAssignments -join '; '). To opt out: add '$FunctionName' to ExcludePreferenceVarCheck."
+                -Because "'$FunctionName' modifies global preference variables, which overrides the caller's settings. Found: $($PrefVarAssignments -join '; '). Recommendation: Remove preference-variable assignments and use common parameters or per-command settings such as -ErrorAction instead. To opt out: add '$FunctionName' to ExcludePreferenceVarCheck."
         }
     }
 }

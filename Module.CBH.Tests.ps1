@@ -29,7 +29,6 @@ param(
 )
 
 BeforeDiscovery {
-    # Import the module so Get-Help works correctly.
     $manifestFile = Get-ChildItem -Path $ModuleRoot -Filter '*.psd1' -File |
         Select-Object -First 1
 
@@ -39,8 +38,6 @@ BeforeDiscovery {
 
     $manifestPath = $manifestFile.FullName
     $moduleName   = $manifestFile.BaseName
-
-    Import-Module $manifestPath -Force -ErrorAction Stop
 
     # Collect public .ps1 files
     $publicPaths = $PublicFunctionPaths |
@@ -76,6 +73,9 @@ BeforeDiscovery {
                 FunctionName = $funcDef.Name
                 ModuleName   = $moduleName
                 FileName     = $file.Name
+                SourcePath   = $file.FullName
+                SourceLine   = $funcDef.Extent.StartLineNumber
+                SourceFunction = $funcDef.Name
                 ParamNames   = $paramNames
             }
         }
@@ -86,9 +86,13 @@ BeforeDiscovery {
     $script:manifestPath  = $manifestPath
 }
 
-Describe 'Comment-Based Help - <ModuleName>' -Tag 'Unit', 'CBH' {
+Describe 'Comment-Based Help - <ModuleName>' -Tag 'Unit', 'CBH' -ForEach @(@{ ModuleName = $script:moduleName; ManifestPath = $script:manifestPath }) {
+    BeforeAll {
+        Import-Module $ManifestPath -Force -ErrorAction Stop
+    }
+
     AfterAll {
-        Remove-Module $script:moduleName -Force -ErrorAction SilentlyContinue
+        Remove-Module $ModuleName -Force -ErrorAction SilentlyContinue
     }
 
     Context '<FunctionName> in <FileName>' -ForEach $script:functionCases {
@@ -99,7 +103,7 @@ Describe 'Comment-Based Help - <ModuleName>' -Tag 'Unit', 'CBH' {
         }
 
         It 'should have a .SYNOPSIS' {
-            $help.Synopsis | Should -Not -BeNullOrEmpty -Because "$FunctionName must have .SYNOPSIS"
+            $help.Synopsis | Should -Not -BeNullOrEmpty -Because "$FunctionName must have .SYNOPSIS. Recommendation: Add a .SYNOPSIS section with a short summary to the function comment-based help."
         }
 
         It 'should have a .DESCRIPTION' {
@@ -107,12 +111,13 @@ Describe 'Comment-Based Help - <ModuleName>' -Tag 'Unit', 'CBH' {
             $descText = if ($help.Description) {
                 ($help.Description | ForEach-Object { $_.Text }) -join ''
             } else { '' }
-            $descText | Should -Not -BeNullOrEmpty -Because "$FunctionName must have .DESCRIPTION"
+            $descText | Should -Not -BeNullOrEmpty -Because "$FunctionName must have .DESCRIPTION. Recommendation: Add a .DESCRIPTION section with text to the function comment-based help."
         }
 
         It 'should have at least one .EXAMPLE' {
-            @($help.Examples.Example).Count | Should -BeGreaterThan 0 `
-                -Because "$FunctionName must have at least one .EXAMPLE"
+            $exampleCount = if ($help.Examples) { @($help.Examples.Example).Count } else { 0 }
+            $exampleCount | Should -BeGreaterThan 0 `
+                -Because "$FunctionName must have at least one .EXAMPLE. Recommendation: Add a .EXAMPLE section with a working command to the function comment-based help."
         }
 
         It 'should have .OUTPUTS' {
@@ -120,20 +125,25 @@ Describe 'Comment-Based Help - <ModuleName>' -Tag 'Unit', 'CBH' {
                 ($help.ReturnValues.ReturnValue |
                     ForEach-Object { $_.Type.Name }) -join ''
             } else { '' }
-            $outputText | Should -Not -BeNullOrEmpty -Because "$FunctionName must have .OUTPUTS"
+            $outputText | Should -Not -BeNullOrEmpty -Because "$FunctionName must have .OUTPUTS. Recommendation: Add a .OUTPUTS section describing the return type, or None if the function returns no output."
         }
 
         # One test per parameter - data-driven so failures name the missing parameter.
-        It '.PARAMETER <_> should be documented' -ForEach $ParamNames {
-            $paramHelp = $help.Parameters.Parameter |
-                Where-Object { $_.Name -eq $_ }
-            $paramHelp | Should -Not -BeNullOrEmpty `
-                -Because "$FunctionName parameter '$_' must have a .PARAMETER entry"
+        if ($ParamNames.Count -gt 0) {
+            It '.PARAMETER <_> should be documented' -ForEach $ParamNames {
+                $parameterName = $_
+                $paramHelp = $help.Parameters.Parameter |
+                    Where-Object { $_.Name -eq $parameterName }
+                $paramHelp | Should -Not -BeNullOrEmpty `
+                    -Because "$FunctionName parameter '$_' must have a .PARAMETER entry. Recommendation: Add a .PARAMETER $_ section with description text to the function comment-based help."
 
-            # Also verify the description text isn't empty.
-            $paramDesc = ($paramHelp.Description | ForEach-Object { $_.Text }) -join ''
-            $paramDesc | Should -Not -BeNullOrEmpty `
-                -Because "$FunctionName .PARAMETER $_ must have description text"
+                # Also verify the description text isn't empty.
+                $paramDesc = if ($paramHelp -and $paramHelp.PSObject.Properties['Description'] -and $paramHelp.Description) {
+                    ($paramHelp.Description | ForEach-Object { $_.Text }) -join ''
+                } else { '' }
+                $paramDesc | Should -Not -BeNullOrEmpty `
+                    -Because "$FunctionName .PARAMETER $_ must have description text. Recommendation: Describe the parameter below its .PARAMETER $_ heading."
+            }
         }
     }
 }

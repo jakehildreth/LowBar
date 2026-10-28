@@ -12,6 +12,10 @@
 #   Strict   -- identical to Default today; reserved for future stricter rules
 
 @{
+    # Optional Html, Markdown, Terminal, All, or None. All/None must be used alone.
+    # An empty selection adds no human-readable reports. XML is always enabled.
+    ReportFormat = @()
+
     # -------------------------------------------------------------------------
     # Module.FunctionConventions.Tests.ps1
     # -------------------------------------------------------------------------

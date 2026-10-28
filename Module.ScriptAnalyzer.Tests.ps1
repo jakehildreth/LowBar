@@ -52,6 +52,7 @@ BeforeDiscovery {
                     @{
                         Name         = $_.Name
                         FullName     = $_.FullName
+                        SourcePath   = $_.FullName
                         SettingsPath = $resolvedSettings
                     }
                 }
@@ -59,9 +60,9 @@ BeforeDiscovery {
     }
 }
 
-Describe 'PSScriptAnalyzer' -Tag 'Unit', 'ScriptAnalyzer' {
+Describe 'PSScriptAnalyzer' -Tag 'Unit', 'ScriptAnalyzer' -ForEach @(@{ SourceScope = 'Module' }) {
     It 'PSScriptAnalyzer module should be available' {
-        Get-Module -Name PSScriptAnalyzer -ListAvailable | Should -Not -BeNullOrEmpty
+        Get-Module -Name PSScriptAnalyzer -ListAvailable | Should -Not -BeNullOrEmpty -Because 'Recommendation: Install PSScriptAnalyzer 1.25.0 or later in a directory on PSModulePath.'
     }
 
     Context 'Per-file analysis' -Skip:(-not $script:PSAAvailable) {
@@ -80,7 +81,7 @@ Describe 'PSScriptAnalyzer' -Tag 'Unit', 'ScriptAnalyzer' {
                 $detail = ($violations | ForEach-Object {
                     "  [$($_.Severity)] $($_.RuleName) at line $($_.Line): $($_.Message)"
                 }) -join "`n"
-                $violations | Should -BeNullOrEmpty -Because "`n$detail"
+                $violations | Should -BeNullOrEmpty -Because "`n$detail`nRecommendation: Correct each reported ScriptAnalyzer rule violation at the listed source line."
             } else {
                 $violations | Should -BeNullOrEmpty
             }
