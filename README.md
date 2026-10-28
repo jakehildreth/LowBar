@@ -99,6 +99,17 @@ includes all files and diagnostics. With JavaScript disabled, all file groups
 remain visible. Reports work offline, with no external assets, reporting module,
 or network dependency.
 
+HTML opens in dark mode. Use **Light mode** in the top bar to switch themes;
+each opening starts dark. Without JavaScript, the report stays dark and hides
+the switch. Printing uses a light palette in either mode.
+
+The palettes match [Jake's blog](https://blog.jakehildreth.com).
+Inter supplies body text. Commit Mono supplies headings, paths, and diagnostics.
+The webfonts and notices are embedded in each HTML file. Unsupported characters
+use system fallback fonts. Keep [Private/Fonts](Private/Fonts) with the runner
+when copying LowBar. Both fonts use the SIL Open Font License, which is separate
+from LowBar's software license.
+
 Empty and incomplete runs do not appear to pass. When Pester returns partial
 results, counts cover those results only. If Pester throws before returning
 results, selected human-readable reports show `Incomplete` and unavailable

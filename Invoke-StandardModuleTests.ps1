@@ -123,7 +123,7 @@
 .NOTES
     Requires PowerShell 5.1+, Pester 5.2.0+, and PSScriptAnalyzer 1.25.0+.
     Missing or older dependencies stop the script before tests run.
-    Keep this script, Private/Reporting.ps1, and all Module.*.Tests.ps1 files together;
+    Keep this script, Private/ (including Fonts/), and all Module.*.Tests.ps1 files together;
     point -ModuleRoot at any module to run the full standard suite.
     Generate a config file with: .\New-StandardModuleTestConfig.ps1 -ModuleRoot '...'
 #>

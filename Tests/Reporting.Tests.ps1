@@ -153,6 +153,40 @@ Export-ModuleMember -Function Get-Sample
         $html | Should -Not -Match '<(?:script|link)[^>]+(?:src|href)='
     }
 
+    It 'starts HTML in dark mode with a light-mode control and embedded licensed fonts' {
+        $run = Invoke-RunnerCase -Parameters @{ ReportFormat = @('Html') }
+        $run.Error | Should -BeNullOrEmpty
+        $html = Get-Content -LiteralPath ($run.Files | Where-Object Extension -eq '.html').FullName -Raw
+        $html | Should -Match '<html[^>]+data-theme="dark"'
+        $html | Should -Match '<button[^>]+id=.theme-toggle.[^>]+type=.button.[^>]+hidden[^>]*>Light mode</button>'
+        $html | Should -Match ':root\[data-theme="light"\]'
+        ($html -match 'font-family:"Inter";[^}]*font-weight:100 900') | Should -BeTrue
+        ($html -match 'font-family:"Commit Mono";[^}]*font-weight:200 700') | Should -BeTrue
+        $darkPalette = [regex]::Match($html, ':root\{[^}]+\}').Value
+        $darkPalette | Should -Match '--paper:#121212;'
+        $darkPalette | Should -Match '--ink:#ccc;'
+        $darkPalette | Should -Match '--heading:#ff7bd9;'
+        $darkPalette | Should -Match '--accent:#ff8a80;'
+        $lightPalette = [regex]::Match($html, ':root\[data-theme="light"\]\{[^}]+\}').Value
+        $lightPalette | Should -Match '--paper:#fdfdfd;'
+        $lightPalette | Should -Match '--ink:#2d2d2d;'
+        $lightPalette | Should -Match '--heading:#1a1a2e;'
+        $lightPalette | Should -Match '--accent:#1a6dd4;'
+        $fontData = @([regex]::Matches($html, 'data:font/woff2;base64,([A-Za-z0-9+/=]+)'))
+        $fontData.Count | Should -Be 2
+        foreach ($font in $fontData) {
+            $bytes = [Convert]::FromBase64String($font.Groups[1].Value)
+            [Text.Encoding]::ASCII.GetString($bytes, 0, 4) | Should -Be 'wOF2'
+        }
+        $html | Should -Match 'SIL OPEN FONT LICENSE'
+        $html | Should -Match 'Copyright 2020 The Inter Project Authors'
+        $html | Should -Match 'Copyright \(c\) 2023 Eigil Nikolajsen'
+        $html | Should -Not -Match 'Berkeley'
+        $html | Should -Not -Match 'url\(["'']?(?:https?:|file:)'
+        $html | Should -Not -Match '<(?:script|link)[^>]+(?:src|href)='
+        $html | Should -Match '(?s)@media print\s*\{[^}]*:root[^}]*color-scheme:light'
+    }
+
     It 'keeps identical HTML file names distinct and escapes prominent recommendations' {
         $run = Invoke-RunnerCase -Parameters @{ ReportFormat = @('Html') } -Setup @'
 function Invoke-Pester {

@@ -309,6 +309,13 @@ function ConvertTo-StandardHtmlReport {
     [OutputType([string])]
     param([Parameter(Mandatory)][psobject]$Report)
 
+    $fontDirectory = Join-Path $PSScriptRoot 'Fonts'
+    $textFont = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $fontDirectory 'Inter-Variable.woff2')))
+    $codeFont = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $fontDirectory 'CommitMono-Variable.woff2')))
+    $fontNotices = @(
+        [IO.File]::ReadAllText((Join-Path $fontDirectory 'OFL-Inter.txt'))
+        [IO.File]::ReadAllText((Join-Path $fontDirectory 'OFL-CommitMono.txt'))
+    ) -join "`n`n"
     $encode = { param($value) [System.Net.WebUtility]::HtmlEncode([string]$value) }
     $statusClass = switch ($Report.Status) {
         'Passed' { 'status-passed' }
@@ -397,38 +404,46 @@ function ConvertTo-StandardHtmlReport {
     $null = $body.Append('</details><footer><strong>LowBar</strong><span>This report checks hygiene, not behavioral correctness.</span></footer>')
     @"
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>$(& $encode $Report.ModuleName) - LowBar hygiene report</title>
 <style>
-:root{color-scheme:light;--paper:#f7f8fa;--surface:#fff;--ink:#202a35;--muted:#536171;--line:#cbd3dd;--accent:#244e86;--fail:#a62232;--pass:#17613f}
+@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(data:font/woff2;base64,$textFont) format("woff2")}
+@font-face{font-family:"Commit Mono";font-style:normal;font-weight:200 700;font-display:swap;src:url(data:font/woff2;base64,$codeFont) format("woff2")}
+:root{color-scheme:dark;--paper:#121212;--surface:#1a1a1a;--ink:#ccc;--muted:#888;--line:#333;--accent:#ff8a80;--heading:#ff7bd9;--subheading:#ff9de5;--brand:#ff9de5;--brand-rule:#ff7bd9;--fail:#ff8a80;--pass:#a0c8a0;--warning:#f2ce88;--notice-bg:#1e1e1e;--nav-hover:#1e1e1e;--selected-bg:#1e1e1e;--selected-line:#ff7bd9;--selected-ink:#ff9de5;--recommendation-bg:#1e1e1e;--recommendation-ink:#ccc;--table-head:#1e1e1e;--focus:#ff8a80;--selection:#ff7bd9;--selection-ink:#121212;--code-font:"Commit Mono","SF Mono","Cascadia Code",Menlo,Monaco,Consolas,monospace}
+:root[data-theme="light"]{color-scheme:light;--paper:#fdfdfd;--surface:#fff;--ink:#2d2d2d;--muted:#6b7280;--line:#e1e4e8;--accent:#1a6dd4;--heading:#1a1a2e;--subheading:#1a1a2e;--brand:#1a1a2e;--brand-rule:#1a6dd4;--fail:#a61717;--pass:#23633e;--warning:#71500d;--notice-bg:#f6f8fa;--nav-hover:#f6f8fa;--selected-bg:#f6f8fa;--selected-line:#1a6dd4;--selected-ink:#1a6dd4;--recommendation-bg:#f6f8fa;--recommendation-ink:#2d2d2d;--table-head:#f6f8fa;--focus:#1a6dd4;--selection:#eef;--selection-ink:#1a1a2e}
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+html{scrollbar-color:var(--line) var(--paper)}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.7 "Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-optical-sizing:auto}
 a{color:var(--accent);text-underline-offset:.2em}
-:focus-visible{outline:3px solid #986300;outline-offset:4px}
-::selection{background:#cce0ff;color:#172f50}
+:focus-visible{outline:3px solid var(--focus);outline-offset:4px}
+::selection{background:var(--selection);color:var(--selection-ink)}
 [hidden]{display:none!important}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 .skip-link{position:absolute;top:-100px;left:1rem;z-index:2;background:var(--surface);padding:.75rem 1rem}
 .skip-link:focus{top:1rem}
-.brand-bar{border-bottom:1px solid var(--line);background:var(--surface)}
-.brand-inner{max-width:1328px;margin:auto;display:flex;align-items:center;gap:1rem;padding:1rem 2rem;font-size:.875rem;color:var(--muted)}
-.brand-inner strong{color:var(--ink);font-size:1.125rem;letter-spacing:-.025em}
+.brand-bar{border-top:4px solid var(--brand-rule);border-bottom:1px solid var(--line);background:var(--surface)}
+.brand-inner{max-width:1328px;margin:auto;display:flex;align-items:center;flex-wrap:wrap;gap:.5rem 1rem;padding:.75rem 2rem;font-size:.875rem;color:var(--muted)}
+.brand-inner strong{color:var(--brand);font-family:var(--code-font);font-size:1.375rem;font-weight:700;letter-spacing:-.025em}
+.theme-toggle{margin-left:auto;padding:.5rem 1rem;min-height:44px;background:var(--surface);color:var(--ink);border:1px solid var(--selected-line);border-radius:4px;font:600 .875rem/1.5 "Inter","Segoe UI",sans-serif;cursor:pointer;touch-action:manipulation}
+.theme-toggle:hover{background:var(--nav-hover)}
 main{max-width:1328px;margin:auto;padding:2.5rem 2rem}
 h1,h2,h3,h4,p{margin:0;overflow-wrap:anywhere}
-h1{font-size:2rem;line-height:1.2;letter-spacing:-.025em}
-h2{font-size:1.25rem;line-height:1.35;letter-spacing:-.015em}
-h3{font-size:1.0625rem;line-height:1.5;font-weight:650}
+h1,h2,h3,h4{font-family:var(--code-font);font-weight:700;color:var(--heading)}
+h1,h2,h3{text-wrap:balance}
+h1{font-size:2.125rem;line-height:1.2;letter-spacing:-.025em}
+h2{font-size:1.25rem;line-height:1.4;letter-spacing:-.015em}
+h3{font-size:1.125rem;line-height:1.5;color:var(--subheading)}
 h4{font-size:.875rem;margin:1.5rem 0 .5rem}
 .run-heading,.section-heading,.file-heading,.check-heading{display:flex;align-items:baseline;justify-content:space-between;gap:.75rem 1.5rem;flex-wrap:wrap}
 .run-status{font-size:.875rem;padding:.375rem .75rem;border:1px solid currentColor;border-radius:4px}
 .status-failed,.count-failed{color:var(--fail)}
 .status-passed,.count-passed{color:var(--pass)}
-.status-incomplete{color:#654300}
+.status-incomplete{color:var(--warning)}
 .run-time{margin-top:.75rem;color:var(--muted);font-size:.875rem}
 .counts{display:flex;flex-wrap:wrap;gap:.5rem 2rem;list-style:none;padding:1rem 0;margin:1.5rem 0 0;border-block:1px solid var(--line);font-size:.9375rem;font-variant-numeric:tabular-nums}
 .counts li:first-child{font-weight:700}
 .counts li:not(:first-child):not(.count-passed){color:var(--muted)}
-.notice{margin:1rem 0;padding:1rem 1.25rem;background:#fff1d5;color:#654300}
+.notice{margin:1rem 0;padding:1rem 1.25rem;background:var(--notice-bg);color:var(--warning)}
 .notice h2{margin-bottom:.75rem}
 .section-heading{margin:2rem 0 1.25rem}
 .section-heading p,.file-heading p{color:var(--muted);font-size:.875rem}
@@ -436,16 +451,16 @@ h4{font-size:.875rem;margin:1.5rem 0 .5rem}
 .file-nav{position:sticky;top:1rem;max-height:calc(100vh - 2rem);overflow:auto;padding:0 .25rem .25rem}
 .nav-help{font-size:.8125rem;color:var(--muted);margin:0 0 .75rem}
 .file-choice{display:block;padding:1rem;margin-top:.25rem;text-decoration:none;border:1px solid transparent;border-radius:4px;overflow-wrap:anywhere}
-.file-choice:hover{background:#e9eef5;border-color:var(--line)}
-.file-choice[aria-current="true"]{background:#e6edf7;border-color:#a6bad6;color:#183d70}
+.file-choice:hover{background:var(--nav-hover);border-color:var(--line)}
+.file-choice[aria-current="true"]{background:var(--selected-bg);border-color:var(--selected-line);color:var(--selected-ink)}
 .file-label{display:flex;align-items:baseline;justify-content:space-between;gap:.75rem}
 .file-name{font-weight:650;font-size:.9375rem}
 .failure-count{font-size:.8125rem;font-weight:700;font-variant-numeric:tabular-nums;flex-shrink:0}
-.file-directory{display:block;color:var(--muted);font-size:.75rem;line-height:1.5;margin-top:.375rem}
+.file-directory{display:block;color:var(--muted);font-size:.8125rem;line-height:1.5;margin-top:.375rem}
 .file-details,.file-group{min-width:0}
 .file-group{background:var(--surface);border:1px solid var(--line);padding:1.5rem 2rem;scroll-margin-top:1rem}
 .file-group+.file-group{margin-top:1.5rem}
-.source-path,.location{font:.8125rem/1.6 Consolas,"Liberation Mono",monospace;color:var(--muted);overflow-wrap:anywhere}
+.source-path,.location{font:.8125rem/1.7 var(--code-font);color:var(--muted);overflow-wrap:anywhere}
 .file-group>.source-path{margin:.5rem 0 1.5rem}
 .failure{padding:1.5rem 0;border-top:1px solid var(--line)}
 .failure:last-child{padding-bottom:.25rem}
@@ -453,7 +468,7 @@ h4{font-size:.875rem;margin:1.5rem 0 .5rem}
 .check-category{font-size:.75rem;color:var(--muted);font-weight:500;overflow-wrap:anywhere}
 .check-heading .check-category{max-width:35%;flex-shrink:0}
 .function-name{color:var(--muted);font-size:.8125rem;margin-top:.375rem}
-.recommendation-text{margin-top:1rem;padding:.875rem 1rem;background:#edf5f0;color:#174e35;font-size:.9375rem;line-height:1.65;overflow-wrap:anywhere}
+.recommendation-text{max-width:72ch;margin-top:1rem;padding:.875rem 1rem;background:var(--recommendation-bg);color:var(--recommendation-ink);font-size:1rem;line-height:1.7;overflow-wrap:anywhere;text-wrap:pretty}
 summary{cursor:pointer;touch-action:manipulation;overflow-wrap:anywhere}
 .diagnostic{margin-top:1rem;font-size:.8125rem}
 .diagnostic>summary{padding:.5rem 0;color:var(--accent);min-height:44px}
@@ -461,7 +476,7 @@ summary{cursor:pointer;touch-action:manipulation;overflow-wrap:anywhere}
 .diagnostic-body{padding:.75rem 0 .25rem}
 .check-path{color:var(--muted);margin-bottom:1rem}
 .location+.location{margin-top:.5rem}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;font:.8125rem/1.7 Consolas,"Liberation Mono",monospace;margin:0}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font:.8125rem/1.75 var(--code-font);margin:0}
 .diagnostic pre{padding:1rem;background:var(--paper);border:1px solid var(--line)}
 .empty-state{max-width:75ch;padding:1.5rem 0;font-size:1rem}
 .other{margin-top:2rem;border-top:1px solid var(--line);padding-top:1rem}
@@ -469,7 +484,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:.8125rem/1.7 Consolas,"Libe
 .other>summary span{color:var(--muted);font-size:.875rem;font-weight:400;margin-left:.75rem}
 table{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:1rem;font-size:.875rem}
 th,td{text-align:left;vertical-align:top;padding:1rem;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
-th{color:var(--muted);font-size:.8125rem;font-weight:600;background:#edf0f4}
+th{color:var(--muted);font-size:.8125rem;font-weight:600;background:var(--table-head)}
 th:first-child{width:8rem}
 td:first-child{font-weight:600;font-size:.8125rem}
 td .source-path{margin-top:.5rem}
@@ -488,7 +503,8 @@ footer strong{color:var(--ink)}
 @media(max-width:650px){
   main{padding:1.5rem 1rem}
   .brand-inner{padding:.875rem 1rem}
-  h1{font-size:1.75rem}
+  h1{font-size:2rem}
+  .brand-inner>span{display:none}
   .run-heading{gap:1rem}
   .run-status{font-size:.8125rem}
   .counts{gap:.5rem 1rem;font-size:.8125rem}
@@ -503,6 +519,7 @@ footer strong{color:var(--ink)}
   th:first-child{width:6rem}
 }
 @media print{
+  :root,:root[data-theme="light"]{color-scheme:light;--paper:#fff;--surface:#fff;--ink:#2d2d2d;--muted:#5a616c;--line:#bcc1c8;--accent:#1a6dd4;--heading:#1a1a2e;--subheading:#1a1a2e;--fail:#a61717;--pass:#23633e;--warning:#71500d;--notice-bg:#f6f8fa;--recommendation-bg:#f6f8fa;--recommendation-ink:#2d2d2d;--table-head:#f6f8fa}
   body{background:white;font-size:11pt}
   main{max-width:none;padding:0}
   .brand-bar,.skip-link,.file-nav{display:none}
@@ -517,10 +534,18 @@ footer strong{color:var(--ink)}
 }
 </style></head><body>
 <a class='skip-link' href='#failures'>Skip to failed checks</a>
-<div class='brand-bar'><div class='brand-inner'><strong>LowBar</strong><span>Module hygiene report</span></div></div>
+<div class='brand-bar'><div class='brand-inner'><strong>LowBar</strong><span>Module hygiene report</span><button class='theme-toggle' id='theme-toggle' type='button' hidden>Light mode</button></div></div>
 <main>$body</main>
+<template id='font-licenses'><pre>$(& $encode $fontNotices)</pre></template>
 <script>
 (() => {
+  const themeToggle = document.getElementById('theme-toggle');
+  themeToggle.hidden = false;
+  themeToggle.addEventListener('click', () => {
+    const useLight = document.documentElement.dataset.theme !== 'light';
+    document.documentElement.dataset.theme = useLight ? 'light' : 'dark';
+    themeToggle.textContent = useLight ? 'Dark mode' : 'Light mode';
+  });
   const links = Array.from(document.querySelectorAll('.file-choice'));
   const groups = Array.from(document.querySelectorAll('.file-group'));
   function selectFile(moveFocus = false) {
